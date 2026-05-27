@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>물의 도시: 회랑의 수호자 - 현과 호의 회랑</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0c4a6e;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #app {
+            position: relative;
+            width: 1000px;
+            height: 600px;
+            background-color: #f0f9ff; /* 연한 하늘색 배경 */
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .screen.active { display: flex; }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .floating-score {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 900;
+            animation: floatUp 1s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-50px); }
+        }
+
+        .water-surface {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, #0ea5e9, #38bdf8);
+            transition: height 0.5s ease;
+            z-index: 5;
+            opacity: 0.7;
+        }
+
+        .btn-ui {
+            transition: all 0.2s;
+        }
+        .btn-ui:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- 수면 (침수도 표시) -->
+        <div id="water-level" class="water-surface" style="height: 0%"></div>
+
+        <!-- 1. 인트로 화면 -->
+        <div id="screen-intro" class="screen active bg-sky-950 text-white text-center p-6">
+            <h1 class="text-6xl font-black italic text-sky-400 mb-6 tracking-tighter">물의 도시: 회랑의 수호자</h1>
+            <div class="max-w-xl bg-slate-800/80 p-8 rounded-3xl border border-sky-500/30 backdrop-blur-md text-center mb-8">
+                <p class="text-lg leading-relaxed break-keep text-slate-200">
+                    회랑의 천정으로부터 기하학의 결계가 무너져 파편이 떨어지기 시작했습니다. <br>
+                    <span class="text-blue-400 font-bold">호(Arc)</span>는 누적 타격이 가능하지만, <br>
+                    <span class="text-red-400 font-bold">현(Chord)</span>은 각도가 정확히 일치해야만 요격할 수 있습니다! <br><br>
+                    30개의 파편을 모두 제거하여 '회랑의 수호자' 증표를 획득하십시오.
+                </p>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="startGame()" class="px-10 py-4 bg-sky-500 hover:bg-sky-400 rounded-full text-xl font-bold shadow-xl btn-ui">퀘스트 수락</button>
+                <button id="btn-video" onclick="showVideo()" class="hidden px-10 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold border border-slate-500 btn-ui">석판의 지식 보기</button>
+            </div>
+        </div>
+
+        <!-- 2. 카운트다운 화면 -->
+        <div id="screen-countdown" class="screen text-sky-500">
+            <span id="countdown-text" class="text-9xl font-black italic">3</span>
+        </div>
+
+        <!-- 3. 게임 플레이 화면 UI -->
+        <div id="screen-game" class="screen pointer-events-none">
+            <div class="absolute top-6 left-6 flex gap-6 text-sky-900 pointer-events-auto">
+                <div class="bg-white/90 p-4 rounded-2xl border border-sky-100 shadow-sm">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Score</p>
+                    <p id="ui-score" class="text-3xl font-black">0</p>
+                </div>
+                <div class="bg-white/90 p-4 rounded-2xl border border-sky-100 shadow-sm">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Remains</p>
+                    <p id="ui-remains" class="text-3xl font-black">30</p>
+                </div>
+                <div class="bg-white/90 p-4 rounded-2xl border border-sky-100 shadow-sm">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Flood</p>
+                    <p id="ui-flood" class="text-3xl font-black text-red-500">0%</p>
+                </div>
+            </div>
+
+            <div class="absolute bottom-6 w-full px-10 flex justify-between items-end pointer-events-auto">
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col gap-2">
+                        <button onclick="adjustAngle(15)" class="p-3 bg-white border-2 border-sky-500 rounded-xl text-sky-600 hover:bg-sky-50 btn-ui">▲</button>
+                        <button onclick="adjustAngle(-15)" class="p-3 bg-white border-2 border-sky-500 rounded-xl text-sky-600 hover:bg-sky-50 btn-ui">▼</button>
+                    </div>
+                    <div class="bg-sky-600 p-6 rounded-3xl text-white text-center min-w-[120px] shadow-lg">
+                        <p class="text-[10px] font-bold uppercase mb-1">Fire Angle</p>
+                        <p id="ui-current-angle" class="text-4xl font-black">15°</p>
+                    </div>
+                </div>
+
+                <button onclick="fire()" class="group relative px-16 py-8 bg-sky-500 hover:bg-sky-400 rounded-3xl text-white text-3xl font-black shadow-2xl transition-all btn-ui">
+                    <span class="relative z-10">요격 (FIRE)</span>
+                    <div class="absolute inset-0 bg-white/20 rounded-3xl scale-x-0 group-active:scale-x-100 transition-transform origin-left"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. 결과 화면 -->
+        <div id="screen-result" class="screen bg-sky-950/95 text-white">
+            <h2 id="result-title" class="text-6xl font-black mb-4 tracking-tight text-sky-400">MISSION CLEAR</h2>
+            <p id="result-desc" class="text-xl text-slate-300 mb-10">당신은 회랑의 수호자로 임명되었습니다.</p>
+            
+            <div id="rank-section" class="hidden w-full max-w-md bg-white/10 p-6 rounded-3xl border border-white/20 mb-10">
+                <h3 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-4">명예의 전당</h3>
+                <div id="leaderboard-list" class="space-y-2 text-sm"></div>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="btn-result-main" onclick="returnToIntro()" class="px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">수호자의 방으로</button>
+                <button id="btn-retry" onclick="startGame()" class="hidden px-10 py-4 bg-orange-500 hover:bg-orange-400 rounded-full text-xl font-bold shadow-xl btn-ui">다시 도전하기</button>
+                <button id="btn-save-rank" onclick="saveScore()" class="px-10 py-4 bg-green-600 hover:bg-green-500 rounded-full text-xl font-bold btn-ui">기록 저장</button>
+            </div>
+        </div>
+
+        <!-- 5. 영상 화면 -->
+        <div id="screen-video" class="screen bg-black text-white">
+            <h2 class="text-3xl font-bold text-sky-400 mb-6">석판의 지식: 현과 호의 차이</h2>
+            <canvas id="videoCanvas" width="800" height="450" class="bg-slate-900 rounded-3xl"></canvas>
+            <button onclick="showScreen('intro')" class="mt-10 px-10 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full font-bold btn-ui">지식 습득 완료</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        // --- 전역 변수 선언 (초기화 오류 방지를 위해 맨 위로 이동) ---
+        let gameState = 'INTRO';
+        let score = 0;
+        let floodLevel = 0;
+        let remains = 30;
+        let currentAngle = 15;
+        let fragments = [];
+        let lastTime = 0;
+        let spawnTimer = 0;
+        let round = 1;
+        let isCleared = false;
+        let user = null;
+        let db = null;
+        let auth = null;
+        let appId = "circle-world-stage2-defender";
+
+        const TYPE_ARC = 'ARC';
+        const TYPE_CHORD = 'CHORD';
+        const ROUNDS = [
+            { count: 10, speed: 0.45, interval: 3800 }, 
+            { count: 10, speed: 0.65, interval: 3200 }, 
+            { count: 10, speed: 0.85, interval: 2800 }  
+        ];
+
+        // --- Firebase 초기화 (안전 장치 추가) ---
+        const initFirebase = async () => {
+            try {
+                let config = {};
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    config = JSON.parse(__firebase_config);
+                } else {
+                    console.warn("Firebase config not found. Storage features disabled.");
+                    return; // 설정이 없으면 Firebase 기능을 초기화하지 않음
+                }
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(config);
+                }
+                auth = firebase.auth();
+                db = firebase.firestore();
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'circle-world-stage2-defender';
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await auth.signInWithCustomToken(__initial_auth_token);
+                } else {
+                    await auth.signInAnonymously();
+                }
+                auth.onAuthStateChanged(u => user = u);
+            } catch (e) {
+                console.error("Firebase init failed:", e);
+            }
+        };
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const showScreen = (id) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${id}`).classList.add('active');
+            gameState = id.toUpperCase();
+        };
+
+        function returnToIntro() {
+            if (isCleared) document.getElementById('btn-video').classList.remove('hidden');
+            showScreen('intro');
+        }
+
+        const createFloatingScore = (x, y, text, color) => {
+            const el = document.createElement('div');
+            el.className = 'floating-score text-xl';
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.color = color;
+            el.innerText = text;
+            document.getElementById('app').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        };
+
+        class Fragment {
+            constructor() {
+                this.type = Math.random() < 0.6 ? TYPE_ARC : TYPE_CHORD;
+                this.targetAngle = (Math.floor(Math.random() * 6) + 1) * 15;
+                this.currentVal = this.targetAngle;
+                this.x = Math.random() * (canvas.width - 200) + 100;
+                this.y = -60;
+                this.speed = ROUNDS[Math.min(round-1, 2)].speed;
+                this.radius = 55;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                const color = this.type === TYPE_ARC ? '#0ea5e9' : '#ef4444';
+                const fillColor = this.type === TYPE_ARC ? 'rgba(14, 165, 233, 0.25)' : 'rgba(239, 68, 68, 0.15)';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                const startAngle = -Math.PI / 2 - (this.targetAngle * Math.PI / 360);
+                const endAngle = -Math.PI / 2 + (this.targetAngle * Math.PI / 360);
+
+                if (this.type === TYPE_ARC) {
+                    ctx.beginPath(); ctx.moveTo(0, 0);
+                    ctx.lineTo(Math.cos(startAngle) * this.radius, Math.sin(startAngle) * this.radius);
+                    ctx.arc(0, 0, this.radius, startAngle, endAngle);
+                    ctx.lineTo(0, 0);
+                    ctx.fillStyle = fillColor; ctx.fill(); ctx.stroke();
+                } else {
+                    ctx.beginPath(); ctx.moveTo(0, 0);
+                    const x1 = Math.cos(startAngle) * this.radius; const y1 = Math.sin(startAngle) * this.radius;
+                    const x2 = Math.cos(endAngle) * this.radius; const y2 = Math.sin(endAngle) * this.radius;
+                    ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(0, 0);
+                    ctx.fillStyle = fillColor; ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+                    ctx.lineWidth = 6; ctx.stroke();
+                }
+                ctx.fillStyle = color; ctx.font = "900 18px Arial"; ctx.textAlign = "center";
+                ctx.fillText(`${this.currentVal}°`, 0, this.radius + 30);
+                ctx.restore();
+            }
+
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height - 30) {
+                    floodLevel += 10; 
+                    updateFlood();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        function startGame() {
+            score = 0; floodLevel = 0; remains = 30; round = 1; fragments = []; spawnTimer = 0;
+            updateFlood();
+            document.getElementById('ui-score').innerText = score;
+            document.getElementById('ui-remains').innerText = remains;
+            showScreen('countdown');
+            let count = 3;
+            document.getElementById('countdown-text').innerText = count;
+            const timer = setInterval(() => {
+                count--;
+                if (count <= 0) {
+                    clearInterval(timer);
+                    showScreen('game');
+                    lastTime = performance.now();
+                    requestAnimationFrame(gameLoop);
+                }
+                document.getElementById('countdown-text').innerText = count;
+            }, 1000);
+        }
+
+        function adjustAngle(val) {
+            currentAngle = Math.max(15, Math.min(90, currentAngle + val));
+            document.getElementById('ui-current-angle').innerText = `${currentAngle}°`;
+        }
+
+        function fire() {
+            if (gameState !== 'GAME') return;
+            let targetIdx = -1; let maxY = -1;
+            for (let i = 0; i < fragments.length; i++) {
+                if (fragments[i].y > maxY) { maxY = fragments[i].y; targetIdx = i; }
+            }
+            if (targetIdx === -1) return;
+            const frag = fragments[targetIdx];
+            const hitX = frag.x; const hitY = frag.y;
+            
+            if (frag.type === TYPE_ARC) {
+                frag.currentVal -= currentAngle;
+                score += 10;
+                createFloatingScore(hitX, hitY, `-${currentAngle}°`, "#0ea5e9");
+                if (frag.currentVal <= 0) {
+                    fragments.splice(targetIdx, 1); remains--;
+                    score += 50; createFloatingScore(hitX, hitY, "SUCCESS +50", "#0369a1");
+                }
+            } else {
+                if (Math.abs(frag.targetAngle - currentAngle) < 2) {
+                    fragments.splice(targetIdx, 1); remains--;
+                    score += 200; createFloatingScore(hitX, hitY, "PERFECT +200", "#ef4444");
+                } else {
+                    createFloatingScore(hitX, hitY, "MISS!", "#94a3b8");
+                }
+            }
+            document.getElementById('ui-score').innerText = score;
+            document.getElementById('ui-remains').innerText = remains;
+            checkRoundProgress();
+        }
+
+        function checkRoundProgress() {
+            const cleared = 30 - remains;
+            if (cleared >= 10 && round === 1) round = 2;
+            if (cleared >= 20 && round === 2) round = 3;
+            if (remains <= 0) endLevel(true);
+        }
+
+        function updateFlood() {
+            const displayLevel = Math.min(100, floodLevel);
+            document.getElementById('ui-flood').innerText = `${displayLevel}%`;
+            document.getElementById('water-level').style.height = `${displayLevel}%`;
+            if (floodLevel >= 100) endLevel(false);
+        }
+
+        function endLevel(success) {
+            gameState = 'RESULT';
+            showScreen('result');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const btnSave = document.getElementById('btn-save-rank');
+            const btnRetry = document.getElementById('btn-retry');
+
+            if (success) {
+                title.innerText = "MISSION CLEAR";
+                title.className = "text-6xl font-black mb-4 text-sky-400";
+                desc.innerText = "회랑의 수호자 칭호를 획득하셨습니다!";
+                isCleared = true;
+                localStorage.setItem('stage2_defender_cleared', 'true');
+                btnSave.classList.remove('hidden');
+                btnRetry.classList.add('hidden');
+                loadLeaderboard();
+            } else {
+                title.innerText = "MISSION FAILED";
+                title.className = "text-6xl font-black mb-4 text-red-500";
+                desc.innerText = "회랑이 침수되었습니다. 다시 시련에 도전하세요.";
+                btnSave.classList.add('hidden');
+                btnRetry.classList.remove('hidden');
+            }
+        }
+
+        function gameLoop(time) {
+            if (gameState !== 'GAME') return;
+            const dt = time - lastTime;
+            lastTime = time;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const spawnedSoFar = 30 - remains + fragments.length;
+            if (spawnedSoFar < 30) {
+                spawnTimer += dt;
+                if (spawnTimer > ROUNDS[Math.min(round-1, 2)].interval) {
+                    fragments.push(new Fragment());
+                    spawnTimer = 0;
+                }
+            }
+            
+            for (let i = fragments.length - 1; i >= 0; i--) {
+                const frag = fragments[i];
+                if (frag.update()) { fragments.splice(i, 1); }
+                else { frag.draw(); }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        async function saveScore() {
+            if (!user || !db) {
+                alert("Storage service is not available in this environment.");
+                return;
+            }
+            const name = prompt("명예의 전당에 기록할 이름을 입력하세요.");
+            if(!name) return;
+            try {
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('leaderboard').add({
+                    name: name,
+                    score: score,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("기록되었습니다!");
+                loadLeaderboard();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadLeaderboard() {
+            if (!db) return;
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = "로딩 중...";
+            try {
+                const snapshot = await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('leaderboard').get();
+                let data = [];
+                snapshot.forEach(doc => data.push(doc.data()));
+                data.sort((a, b) => b.score - a.score);
+                list.innerHTML = data.slice(0, 5).map((entry, idx) => `
+                    <div class="flex justify-between items-center bg-white/5 p-2 rounded">
+                        <span>${idx+1}. ${entry.name}</span>
+                        <span class="font-bold text-sky-400">${entry.score} pts</span>
+                    </div>
+                `).join('');
+                document.getElementById('rank-section').classList.remove('hidden');
+            } catch (e) { console.error(e); }
+        }
+
+        function showVideo() {
+            showScreen('video');
+            const vCanvas = document.getElementById('videoCanvas');
+            const vCtx = vCanvas.getContext('2d');
+            let vStart = null;
+            function vAnimate(t) {
+                if (gameState !== 'VIDEO') return;
+                if (!vStart) vStart = t;
+                const elapsed = t - vStart;
+                vCtx.fillStyle = '#0f172a'; vCtx.fillRect(0, 0, 800, 450);
+                const cx = 400, cy = 200, r = 120;
+                vCtx.strokeStyle = '#1e293b'; vCtx.lineWidth = 1;
+                vCtx.beginPath(); vCtx.arc(cx, cy, r, 0, Math.PI*2); vCtx.stroke();
+                const p = Math.min(elapsed / 4000, 1);
+                const angle = 180 * p;
+                const startA = -Math.PI/2 - (angle * Math.PI / 360);
+                const endA = -Math.PI/2 + (angle * Math.PI / 360);
+                vCtx.beginPath(); vCtx.moveTo(cx, cy); vCtx.arc(cx, cy, r, startA, endA); vCtx.lineTo(cx, cy);
+                vCtx.fillStyle = 'rgba(56, 189, 248, 0.2)'; vCtx.fill();
+                vCtx.strokeStyle = '#38bdf8'; vCtx.lineWidth = 4; vCtx.stroke();
+                vCtx.beginPath();
+                const x1 = cx + Math.cos(startA) * r; const y1 = cy + Math.sin(startA) * r;
+                const x2 = cx + Math.cos(endA) * r; const y2 = cy + Math.sin(endA) * r;
+                vCtx.moveTo(x1, y1); vCtx.lineTo(x2, y2);
+                vCtx.strokeStyle = '#ef4444'; vCtx.lineWidth = 3; vCtx.stroke();
+                vCtx.fillStyle = 'white'; vCtx.font = "20px 'Noto Sans KR'"; vCtx.textAlign = "center";
+                vCtx.fillText(`중심각: ${Math.round(angle)}°`, 400, 360);
+                if (elapsed > 4500) {
+                    vCtx.fillStyle = '#38bdf8'; vCtx.fillText("호의 길이는 중심각에 정비례합니다.", 400, 400);
+                    vCtx.fillStyle = '#ef4444'; vCtx.fillText("현의 길이는 정비례하지 않습니다.", 400, 430);
+                    document.getElementById('btn-video-done').style.opacity = 1;
+                }
+                requestAnimationFrame(vAnimate);
+            }
+            requestAnimationFrame(vAnimate);
+        }
+
+        window.onload = () => {
+            canvas.width = 1000;
+            canvas.height = 600;
+            isCleared = localStorage.getItem('stage2_defender_cleared') === 'true';
+            if (isCleared) document.getElementById('btn-video').classList.remove('hidden');
+            initFirebase();
+        };
+    </script>
+</body>
+</html>
