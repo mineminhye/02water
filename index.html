@@ -98,7 +98,7 @@
             </div>
             <div class="flex gap-4">
                 <button onclick="startGame()" class="px-10 py-4 bg-sky-500 hover:bg-sky-400 rounded-full text-xl font-bold shadow-xl btn-ui">퀘스트 수락</button>
-                <button id="btn-video" onclick="showVideo()" class="hidden px-10 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold border border-slate-500 btn-ui">석판의 지식 보기</button>
+                <button id="btn-video" onclick="showVideo()" class="hidden px-10 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold border border-slate-500 btn-ui">석판의 지식</button>
             </div>
         </div>
 
@@ -154,9 +154,10 @@
             </div>
 
             <div class="flex gap-4">
-                <button id="btn-result-main" onclick="returnToIntro()" class="px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">수호자의 방으로</button>
-                <button id="btn-retry" onclick="startGame()" class="hidden px-10 py-4 bg-orange-500 hover:bg-orange-400 rounded-full text-xl font-bold shadow-xl btn-ui">다시 도전하기</button>
-                <button id="btn-save-rank" onclick="saveScore()" class="px-10 py-4 bg-green-600 hover:bg-green-500 rounded-full text-xl font-bold btn-ui">기록 저장</button>
+                <button id="btn-wisdom" onclick="openWisdom()" class="px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">지혜의 석판 읽기</button>
+                <button id="btn-map" onclick="openMap()" class="px-10 py-4 bg-green-600 hover:bg-green-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">모험의 지도 펼치기</button>
+                <button id="btn-restart" onclick="startGame()" class="px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-full text-xl font-bold shadow-xl btn-ui">게임 다시 시작하기</button>
+                <button id="btn-save-rank" onclick="saveScore()" class="px-10 py-4 bg-blue-600 hover:bg-blue-500 rounded-full text-xl font-bold btn-ui">기록 저장</button>
             </div>
         </div>
 
@@ -377,7 +378,6 @@
             const title = document.getElementById('result-title');
             const desc = document.getElementById('result-desc');
             const btnSave = document.getElementById('btn-save-rank');
-            const btnRetry = document.getElementById('btn-retry');
 
             if (success) {
                 title.innerText = "MISSION CLEAR";
@@ -386,14 +386,12 @@
                 isCleared = true;
                 localStorage.setItem('stage2_defender_cleared', 'true');
                 btnSave.classList.remove('hidden');
-                btnRetry.classList.add('hidden');
                 loadLeaderboard();
             } else {
                 title.innerText = "MISSION FAILED";
                 title.className = "text-6xl font-black mb-4 text-red-500";
                 desc.innerText = "회랑이 침수되었습니다. 다시 시련에 도전하세요.";
                 btnSave.classList.add('hidden');
-                btnRetry.classList.remove('hidden');
             }
         }
 
@@ -487,11 +485,19 @@
                 if (elapsed > 4500) {
                     vCtx.fillStyle = '#38bdf8'; vCtx.fillText("호의 길이는 중심각에 정비례합니다.", 400, 400);
                     vCtx.fillStyle = '#ef4444'; vCtx.fillText("현의 길이는 정비례하지 않습니다.", 400, 430);
-                    document.getElementById('btn-video-done').style.opacity = 1;
                 }
                 requestAnimationFrame(vAnimate);
             }
             requestAnimationFrame(vAnimate);
+        }
+
+        // 결과 화면의 버튼 함수들
+        function openWisdom() {
+            showVideo();
+        }
+
+        function openMap() {
+            window.open('https://wontheworld.netlify.app/', '_blank');
         }
 
         window.onload = () => {
