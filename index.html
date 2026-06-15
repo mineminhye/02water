@@ -98,7 +98,7 @@
             </div>
             <div class="flex gap-4">
                 <button onclick="startGame()" class="px-10 py-4 bg-sky-500 hover:bg-sky-400 rounded-full text-xl font-bold shadow-xl btn-ui">퀘스트 수락</button>
-                <button id="btn-video" onclick="showVideo()" class="hidden px-10 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold border border-slate-500 btn-ui">석판의 지식</button>
+                <button id="btn-video" onclick="showVideo()" class="hidden px-10 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold border border-slate-500 btn-ui">석판의 지식 보기</button>
             </div>
         </div>
 
@@ -146,7 +146,13 @@
         <!-- 4. 결과 화면 -->
         <div id="screen-result" class="screen bg-sky-950/95 text-white">
             <h2 id="result-title" class="text-6xl font-black mb-4 tracking-tight text-sky-400">MISSION CLEAR</h2>
-            <p id="result-desc" class="text-xl text-slate-300 mb-10">당신은 회랑의 수호자로 임명되었습니다.</p>
+            <p id="result-desc" class="text-xl text-slate-300 mb-6">당신은 회랑의 수호자로 임명되었습니다.</p>
+            
+            <!-- 석판 표시 -->
+            <div id="tablet-container" class="hidden mb-8">
+                <canvas id="tabletCanvas" width="200" height="200" style="display: block; margin: 0 auto;"></canvas>
+                <p class="text-sm text-sky-300 text-center mt-2">물의 수호자 석판 2단계</p>
+            </div>
             
             <div id="rank-section" class="hidden w-full max-w-md bg-white/10 p-6 rounded-3xl border border-white/20 mb-10">
                 <h3 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-4">명예의 전당</h3>
@@ -156,7 +162,7 @@
             <div class="flex gap-4">
                 <button id="btn-wisdom" onclick="openWisdom()" class="px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">지혜의 석판 읽기</button>
                 <button id="btn-map" onclick="openMap()" class="px-10 py-4 bg-green-600 hover:bg-green-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">모험의 지도 펼치기</button>
-                <button id="btn-restart" onclick="startGame()" class="px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-full text-xl font-bold shadow-xl btn-ui">게임 다시 시작하기</button>
+                <button id="btn-restart" onclick="startGame()" class="px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-full text-xl font-bold shadow-xl btn-ui">게임 다시 시작</button>
                 <button id="btn-save-rank" onclick="saveScore()" class="px-10 py-4 bg-blue-600 hover:bg-blue-500 rounded-full text-xl font-bold btn-ui">기록 저장</button>
             </div>
         </div>
@@ -372,12 +378,63 @@
             if (floodLevel >= 100) endLevel(false);
         }
 
+        function drawTablet() {
+            const tabletCanvas = document.getElementById('tabletCanvas');
+            const tabletCtx = tabletCanvas.getContext('2d');
+            const cx = 100, cy = 100, radius = 80;
+
+            // 배경
+            tabletCtx.fillStyle = '#1e3a8a';
+            tabletCtx.fillRect(0, 0, 200, 200);
+
+            // 원 테두리
+            tabletCtx.strokeStyle = '#60a5fa';
+            tabletCtx.lineWidth = 3;
+            tabletCtx.beginPath();
+            tabletCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            tabletCtx.stroke();
+
+            // 1단계 석판: 중심각 36도 부채꼴 (상단)
+            const angle1Start = -Math.PI / 2 - (18 * Math.PI / 180);
+            const angle1End = -Math.PI / 2 + (18 * Math.PI / 180);
+            tabletCtx.beginPath();
+            tabletCtx.moveTo(cx, cy);
+            tabletCtx.arc(cx, cy, radius, angle1Start, angle1End);
+            tabletCtx.lineTo(cx, cy);
+            tabletCtx.fillStyle = 'rgba(56, 189, 248, 0.6)';
+            tabletCtx.fill();
+            tabletCtx.strokeStyle = '#38bdf8';
+            tabletCtx.lineWidth = 2;
+            tabletCtx.stroke();
+
+            // 2단계 석판: 중심각 36도 부채꼴 (우측)
+            const angle2Start = -Math.PI / 2 + (36 * Math.PI / 180);
+            const angle2End = -Math.PI / 2 + (72 * Math.PI / 180);
+            tabletCtx.beginPath();
+            tabletCtx.moveTo(cx, cy);
+            tabletCtx.arc(cx, cy, radius, angle2Start, angle2End);
+            tabletCtx.lineTo(cx, cy);
+            tabletCtx.fillStyle = 'rgba(34, 197, 94, 0.6)';
+            tabletCtx.fill();
+            tabletCtx.strokeStyle = '#22c55e';
+            tabletCtx.lineWidth = 2;
+            tabletCtx.stroke();
+
+            // 텍스트
+            tabletCtx.fillStyle = '#ffffff';
+            tabletCtx.font = 'bold 12px Noto Sans KR';
+            tabletCtx.textAlign = 'center';
+            tabletCtx.fillText('36°', cx - 30, cy - 50);
+            tabletCtx.fillText('36°', cx + 50, cy + 10);
+        }
+
         function endLevel(success) {
             gameState = 'RESULT';
             showScreen('result');
             const title = document.getElementById('result-title');
             const desc = document.getElementById('result-desc');
             const btnSave = document.getElementById('btn-save-rank');
+            const tabletContainer = document.getElementById('tablet-container');
 
             if (success) {
                 title.innerText = "MISSION CLEAR";
@@ -386,12 +443,15 @@
                 isCleared = true;
                 localStorage.setItem('stage2_defender_cleared', 'true');
                 btnSave.classList.remove('hidden');
+                tabletContainer.classList.remove('hidden');
+                drawTablet();
                 loadLeaderboard();
             } else {
                 title.innerText = "MISSION FAILED";
                 title.className = "text-6xl font-black mb-4 text-red-500";
                 desc.innerText = "회랑이 침수되었습니다. 다시 시련에 도전하세요.";
                 btnSave.classList.add('hidden');
+                tabletContainer.classList.add('hidden');
             }
         }
 
