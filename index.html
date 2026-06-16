@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>물의 도시: 회랑의 수호자 - 현과 호의 회랑</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
         
@@ -167,11 +165,6 @@
             <h2 id="result-title" class="text-6xl font-black mb-4 tracking-tight text-sky-400">MISSION CLEAR</h2>
             <p id="result-desc" class="text-xl text-slate-300 mb-10">당신은 회랑의 수호자로 임명되었습니다.</p>
             
-            <div id="rank-section" class="hidden w-full max-w-md bg-white/10 p-6 rounded-3xl border border-white/20 mb-10">
-                <h3 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-4">명예의 전당</h3>
-                <div id="leaderboard-list" class="space-y-2 text-sm"></div>
-            </div>
-
             <div class="flex flex-col gap-3 items-center w-full max-w-sm">
                 <!-- 성공 시 표시 버튼들 -->
                 <div id="btn-group-success" class="hidden flex flex-col gap-3 w-full">
@@ -199,9 +192,6 @@
                         수호자의 방으로
                     </button>
                 </div>
-                <button id="btn-save-rank" onclick="saveScore()" class="hidden w-full px-10 py-4 bg-green-600 hover:bg-green-500 text-white rounded-full text-lg font-bold btn-ui">
-                    💾 기록 저장
-                </button>
             </div>
         </div>
 
@@ -227,10 +217,6 @@
         let spawnTimer = 0;
         let round = 1;
         let isCleared = false;
-        let user = null;
-        let db = null;
-        let auth = null;
-        let appId = "circle-world-stage2-defender";
 
         const TYPE_ARC = 'ARC';
         const TYPE_CHORD = 'CHORD';
@@ -239,35 +225,6 @@
             { count: 10, speed: 0.65, interval: 3200 }, 
             { count: 10, speed: 0.85, interval: 2800 }  
         ];
-
-        // --- Firebase 초기화 (안전 장치 추가) ---
-        const initFirebase = async () => {
-            try {
-                let config = {};
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    config = JSON.parse(__firebase_config);
-                } else {
-                    console.warn("Firebase config not found. Storage features disabled.");
-                    return; // 설정이 없으면 Firebase 기능을 초기화하지 않음
-                }
-
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(config);
-                }
-                auth = firebase.auth();
-                db = firebase.firestore();
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'circle-world-stage2-defender';
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
-                auth.onAuthStateChanged(u => user = u);
-            } catch (e) {
-                console.error("Firebase init failed:", e);
-            }
-        };
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -429,7 +386,6 @@
             showScreen('result');
             const title = document.getElementById('result-title');
             const desc = document.getElementById('result-desc');
-            const btnSave = document.getElementById('btn-save-rank');
 
             const groupSuccess = document.getElementById('btn-group-success');
             const groupFail = document.getElementById('btn-group-fail');
@@ -444,8 +400,6 @@
                 groupSuccess.style.display = 'flex';
                 groupFail.classList.add('hidden');
                 groupFail.style.display = 'none';
-                btnSave.classList.remove('hidden');
-                loadLeaderboard();
             } else {
                 title.innerText = "MISSION FAILED";
                 title.className = "text-6xl font-black mb-4 text-red-500";
@@ -454,7 +408,6 @@
                 groupSuccess.style.display = 'none';
                 groupFail.classList.remove('hidden');
                 groupFail.style.display = 'flex';
-                btnSave.classList.add('hidden');
             }
         }
 
@@ -481,42 +434,6 @@
             requestAnimationFrame(gameLoop);
         }
 
-        async function saveScore() {
-            if (!user || !db) {
-                alert("Storage service is not available in this environment.");
-                return;
-            }
-            const name = prompt("명예의 전당에 기록할 이름을 입력하세요.");
-            if(!name) return;
-            try {
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('leaderboard').add({
-                    name: name,
-                    score: score,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert("기록되었습니다!");
-                loadLeaderboard();
-            } catch (e) { console.error(e); }
-        }
-
-        async function loadLeaderboard() {
-            if (!db) return;
-            const list = document.getElementById('leaderboard-list');
-            list.innerHTML = "로딩 중...";
-            try {
-                const snapshot = await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('leaderboard').get();
-                let data = [];
-                snapshot.forEach(doc => data.push(doc.data()));
-                data.sort((a, b) => b.score - a.score);
-                list.innerHTML = data.slice(0, 5).map((entry, idx) => `
-                    <div class="flex justify-between items-center bg-white/5 p-2 rounded">
-                        <span>${idx+1}. ${entry.name}</span>
-                        <span class="font-bold text-sky-400">${entry.score} pts</span>
-                    </div>
-                `).join('');
-                document.getElementById('rank-section').classList.remove('hidden');
-            } catch (e) { console.error(e); }
-        }
 
         function showVideo() {
             showScreen('video');
@@ -560,7 +477,6 @@
             canvas.height = 600;
             isCleared = localStorage.getItem('stage2_defender_cleared') === 'true';
             if (isCleared) document.getElementById('btn-video').classList.remove('hidden');
-            initFirebase();
         };
     </script>
 </body>
