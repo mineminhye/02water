@@ -90,11 +90,26 @@
             <h1 class="text-6xl font-black italic text-sky-400 mb-6 tracking-tighter">물의 도시: 회랑의 수호자</h1>
             <div class="max-w-xl bg-slate-800/80 p-8 rounded-3xl border border-sky-500/30 backdrop-blur-md text-center mb-8">
                 <p class="text-lg leading-relaxed break-keep text-slate-200">
-                    회랑의 천정으로부터 기하학의 결계가 무너져 파편이 떨어지기 시작했습니다. <br>
-                    <span class="text-blue-400 font-bold">호(Arc)</span>는 누적 타격이 가능하지만, <br>
-                    <span class="text-red-400 font-bold">현(Chord)</span>은 각도가 정확히 일치해야만 요격할 수 있습니다! <br><br>
-                    30개의 파편을 모두 제거하여 '회랑의 수호자' 증표를 획득하십시오.
+                    회랑의 천정으로부터 기하학의 결계가 무너져 파편이 떨어지기 시작했습니다.
                 </p>
+                <div class="mt-4 text-left space-y-3">
+                    <div class="bg-blue-900/50 border border-blue-400/40 rounded-2xl px-5 py-3">
+                        <p class="font-bold text-blue-400 mb-1">🔵 호(Arc) 파편 — 누적 요격</p>
+                        <p class="text-slate-300 text-base leading-relaxed break-keep">
+                            15°씩 여러 번 나눠서 요격할 수 있습니다.<br>
+                            예) <span class="text-blue-300 font-bold">30° 호</span> → 15°로 <span class="text-blue-300 font-bold">2번</span> 요격하면 제거!<br>
+                            <span class="text-yellow-300 text-sm">매 타격마다 +10점, 제거 시 추가 +50점 보너스!</span>
+                        </p>
+                    </div>
+                    <div class="bg-red-900/50 border border-red-400/40 rounded-2xl px-5 py-3">
+                        <p class="font-bold text-red-400 mb-1">🔴 현(Chord) 파편 — 정확도 요격</p>
+                        <p class="text-slate-300 text-base leading-relaxed break-keep">
+                            표시된 각도와 <span class="text-red-300 font-bold">정확히 일치</span>해야만 요격됩니다.<br>
+                            <span class="text-yellow-300 text-sm">한 방에 성공하면 +200점 PERFECT!</span>
+                        </p>
+                    </div>
+                </div>
+                <p class="text-slate-400 text-sm mt-4">30개의 파편을 모두 제거하여 '회랑의 수호자' 증표를 획득하십시오.</p>
             </div>
             <div class="flex gap-4">
                 <button onclick="startGame()" class="px-10 py-4 bg-sky-500 hover:bg-sky-400 rounded-full text-xl font-bold shadow-xl btn-ui">퀘스트 수락</button>
@@ -109,6 +124,10 @@
 
         <!-- 3. 게임 플레이 화면 UI -->
         <div id="screen-game" class="screen pointer-events-none">
+            <!-- 나가기 버튼 -->
+            <button onclick="exitGame()" class="absolute top-4 right-6 z-20 pointer-events-auto flex items-center gap-1 px-3 py-2 bg-white/80 hover:bg-red-50 border border-slate-200 hover:border-red-300 text-slate-500 hover:text-red-500 rounded-xl text-sm font-bold transition-all btn-ui">
+                ✕ 나가기
+            </button>
             <div class="absolute top-6 left-6 flex gap-6 text-sky-900 pointer-events-auto">
                 <div class="bg-white/90 p-4 rounded-2xl border border-sky-100 shadow-sm">
                     <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Score</p>
@@ -146,24 +165,43 @@
         <!-- 4. 결과 화면 -->
         <div id="screen-result" class="screen bg-sky-950/95 text-white">
             <h2 id="result-title" class="text-6xl font-black mb-4 tracking-tight text-sky-400">MISSION CLEAR</h2>
-            <p id="result-desc" class="text-xl text-slate-300 mb-6">당신은 회랑의 수호자로 임명되었습니다.</p>
-            
-            <!-- 석판 표시 -->
-            <div id="tablet-container" class="hidden mb-8">
-                <canvas id="tabletCanvas" width="200" height="200" style="display: block; margin: 0 auto;"></canvas>
-                <p class="text-sm text-sky-300 text-center mt-2">물의 수호자 석판 2단계</p>
-            </div>
+            <p id="result-desc" class="text-xl text-slate-300 mb-10">당신은 회랑의 수호자로 임명되었습니다.</p>
             
             <div id="rank-section" class="hidden w-full max-w-md bg-white/10 p-6 rounded-3xl border border-white/20 mb-10">
                 <h3 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-4">명예의 전당</h3>
                 <div id="leaderboard-list" class="space-y-2 text-sm"></div>
             </div>
 
-            <div class="flex gap-4">
-                <button id="btn-wisdom" onclick="openWisdom()" class="px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">지혜의 석판 읽기</button>
-                <button id="btn-map" onclick="openMap()" class="px-10 py-4 bg-green-600 hover:bg-green-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">모험의 지도 펼치기</button>
-                <button id="btn-restart" onclick="startGame()" class="px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-full text-xl font-bold shadow-xl btn-ui">게임 다시 시작</button>
-                <button id="btn-save-rank" onclick="saveScore()" class="px-10 py-4 bg-blue-600 hover:bg-blue-500 rounded-full text-xl font-bold btn-ui">기록 저장</button>
+            <div class="flex flex-col gap-3 items-center w-full max-w-sm">
+                <!-- 성공 시 표시 버튼들 -->
+                <div id="btn-group-success" class="hidden flex flex-col gap-3 w-full">
+                    <a href="https://wontheworld.netlify.app/" target="_blank"
+                       class="w-full text-center px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-full text-lg font-bold shadow-xl btn-ui">
+                        🗺️ 모험의 지도 펼치기
+                    </a>
+                    <button onclick="alert('유튜브 링크는 추후 연결 예정입니다.')"
+                            class="w-full px-10 py-4 bg-slate-600 hover:bg-slate-500 text-white rounded-full text-lg font-bold shadow-xl btn-ui opacity-70 cursor-not-allowed">
+                        📜 지혜의 석판 보기
+                    </button>
+                    <button onclick="startGame()"
+                            class="w-full px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-full text-lg font-bold shadow-xl btn-ui">
+                        🔄 게임 다시 하기
+                    </button>
+                </div>
+                <!-- 실패 시 표시 버튼들 -->
+                <div id="btn-group-fail" class="hidden flex flex-col gap-3 w-full">
+                    <button onclick="startGame()"
+                            class="w-full px-10 py-4 bg-orange-500 hover:bg-orange-400 text-white rounded-full text-xl font-bold shadow-xl btn-ui">
+                        🔄 다시 도전하기
+                    </button>
+                    <button onclick="returnToIntro()"
+                            class="w-full px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-full text-xl font-bold shadow-xl btn-ui">
+                        수호자의 방으로
+                    </button>
+                </div>
+                <button id="btn-save-rank" onclick="saveScore()" class="hidden w-full px-10 py-4 bg-green-600 hover:bg-green-500 text-white rounded-full text-lg font-bold btn-ui">
+                    💾 기록 저장
+                </button>
             </div>
         </div>
 
@@ -243,6 +281,14 @@
         function returnToIntro() {
             if (isCleared) document.getElementById('btn-video').classList.remove('hidden');
             showScreen('intro');
+        }
+
+        function exitGame() {
+            if (confirm('게임을 중단하고 인트로 화면으로 돌아가시겠습니까?')) {
+                gameState = 'INTRO'; // gameLoop 중단
+                fragments = [];
+                returnToIntro();
+            }
         }
 
         const createFloatingScore = (x, y, text, color) => {
@@ -378,63 +424,15 @@
             if (floodLevel >= 100) endLevel(false);
         }
 
-        function drawTablet() {
-            const tabletCanvas = document.getElementById('tabletCanvas');
-            const tabletCtx = tabletCanvas.getContext('2d');
-            const cx = 100, cy = 100, radius = 80;
-
-            // 배경
-            tabletCtx.fillStyle = '#1e3a8a';
-            tabletCtx.fillRect(0, 0, 200, 200);
-
-            // 원 테두리
-            tabletCtx.strokeStyle = '#60a5fa';
-            tabletCtx.lineWidth = 3;
-            tabletCtx.beginPath();
-            tabletCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-            tabletCtx.stroke();
-
-            // 1단계 석판: 중심각 36도 부채꼴 (상단)
-            const angle1Start = -Math.PI / 2 - (18 * Math.PI / 180);
-            const angle1End = -Math.PI / 2 + (18 * Math.PI / 180);
-            tabletCtx.beginPath();
-            tabletCtx.moveTo(cx, cy);
-            tabletCtx.arc(cx, cy, radius, angle1Start, angle1End);
-            tabletCtx.lineTo(cx, cy);
-            tabletCtx.fillStyle = 'rgba(56, 189, 248, 0.6)';
-            tabletCtx.fill();
-            tabletCtx.strokeStyle = '#38bdf8';
-            tabletCtx.lineWidth = 2;
-            tabletCtx.stroke();
-
-            // 2단계 석판: 중심각 36도 부채꼴 (우측)
-            const angle2Start = -Math.PI / 2 + (36 * Math.PI / 180);
-            const angle2End = -Math.PI / 2 + (72 * Math.PI / 180);
-            tabletCtx.beginPath();
-            tabletCtx.moveTo(cx, cy);
-            tabletCtx.arc(cx, cy, radius, angle2Start, angle2End);
-            tabletCtx.lineTo(cx, cy);
-            tabletCtx.fillStyle = 'rgba(34, 197, 94, 0.6)';
-            tabletCtx.fill();
-            tabletCtx.strokeStyle = '#22c55e';
-            tabletCtx.lineWidth = 2;
-            tabletCtx.stroke();
-
-            // 텍스트
-            tabletCtx.fillStyle = '#ffffff';
-            tabletCtx.font = 'bold 12px Noto Sans KR';
-            tabletCtx.textAlign = 'center';
-            tabletCtx.fillText('36°', cx - 30, cy - 50);
-            tabletCtx.fillText('36°', cx + 50, cy + 10);
-        }
-
         function endLevel(success) {
             gameState = 'RESULT';
             showScreen('result');
             const title = document.getElementById('result-title');
             const desc = document.getElementById('result-desc');
             const btnSave = document.getElementById('btn-save-rank');
-            const tabletContainer = document.getElementById('tablet-container');
+
+            const groupSuccess = document.getElementById('btn-group-success');
+            const groupFail = document.getElementById('btn-group-fail');
 
             if (success) {
                 title.innerText = "MISSION CLEAR";
@@ -442,16 +440,21 @@
                 desc.innerText = "회랑의 수호자 칭호를 획득하셨습니다!";
                 isCleared = true;
                 localStorage.setItem('stage2_defender_cleared', 'true');
+                groupSuccess.classList.remove('hidden');
+                groupSuccess.style.display = 'flex';
+                groupFail.classList.add('hidden');
+                groupFail.style.display = 'none';
                 btnSave.classList.remove('hidden');
-                tabletContainer.classList.remove('hidden');
-                drawTablet();
                 loadLeaderboard();
             } else {
                 title.innerText = "MISSION FAILED";
                 title.className = "text-6xl font-black mb-4 text-red-500";
                 desc.innerText = "회랑이 침수되었습니다. 다시 시련에 도전하세요.";
+                groupSuccess.classList.add('hidden');
+                groupSuccess.style.display = 'none';
+                groupFail.classList.remove('hidden');
+                groupFail.style.display = 'flex';
                 btnSave.classList.add('hidden');
-                tabletContainer.classList.add('hidden');
             }
         }
 
@@ -545,19 +548,11 @@
                 if (elapsed > 4500) {
                     vCtx.fillStyle = '#38bdf8'; vCtx.fillText("호의 길이는 중심각에 정비례합니다.", 400, 400);
                     vCtx.fillStyle = '#ef4444'; vCtx.fillText("현의 길이는 정비례하지 않습니다.", 400, 430);
+                    document.getElementById('btn-video-done').style.opacity = 1;
                 }
                 requestAnimationFrame(vAnimate);
             }
             requestAnimationFrame(vAnimate);
-        }
-
-        // 결과 화면의 버튼 함수들
-        function openWisdom() {
-            showVideo();
-        }
-
-        function openMap() {
-            window.open('https://wontheworld.netlify.app/', '_blank');
         }
 
         window.onload = () => {
