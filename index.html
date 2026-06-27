@@ -75,6 +75,15 @@
             transition: all 0.2s;
         }
         .btn-ui:active { transform: scale(0.95); }
+
+        /* 모바일: 인트로 화면 스크롤 */
+        #screen-intro {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-height: 650px) {
+            #screen-intro { justify-content: flex-start; padding-top: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -84,7 +93,7 @@
         <div id="water-level" class="water-surface" style="height: 0%"></div>
 
         <!-- 1. 인트로 화면 -->
-        <div id="screen-intro" class="screen active bg-sky-950 text-white text-center p-6">
+        <div id="screen-intro" class="screen active bg-sky-950 text-white text-center p-6 overflow-y-auto" style="align-items:flex-start;padding-top:24px;">
             <h1 class="text-6xl font-black italic text-sky-400 mb-6 tracking-tighter">물의 도시: 회랑의 수호자</h1>
             <div class="max-w-xl bg-slate-800/80 p-8 rounded-3xl border border-sky-500/30 backdrop-blur-md text-center mb-8">
                 <p class="text-lg leading-relaxed break-keep text-slate-200">
@@ -109,8 +118,8 @@
                 </div>
                 <p class="text-slate-400 text-sm mt-4">30개의 파편을 모두 제거하여 '회랑의 수호자' 증표를 획득하십시오.</p>
             </div>
-            <div class="flex gap-4">
-                <button onclick="startGame()" class="px-10 py-4 bg-sky-500 hover:bg-sky-400 rounded-full text-xl font-bold shadow-xl btn-ui">퀘스트 수락</button>
+            <div class="flex gap-4 justify-center w-full">
+                <button onclick="startTutorial()" class="px-10 py-4 bg-sky-500 hover:bg-sky-400 rounded-full text-xl font-bold shadow-xl btn-ui">⚔️ 퀘스트 수락</button>
                 <button id="btn-video" onclick="showVideo()" class="hidden px-10 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-bold border border-slate-500 btn-ui">석판의 지식 보기</button>
             </div>
         </div>
@@ -133,7 +142,7 @@
                 </div>
                 <div class="bg-white/90 p-4 rounded-2xl border border-sky-100 shadow-sm">
                     <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Remains</p>
-                    <p id="ui-remains" class="text-3xl font-black">30</p>
+                    <p id="ui-remains" class="text-3xl font-black">24</p>
                 </div>
                 <div class="bg-white/90 p-4 rounded-2xl border border-sky-100 shadow-sm">
                     <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Flood</p>
@@ -202,6 +211,53 @@
             <button onclick="showScreen('intro')" class="mt-10 px-10 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full font-bold btn-ui">지식 습득 완료</button>
         </div>
 
+        <!-- 6. 튜토리얼 화면 -->
+        <div id="screen-tutorial" class="screen pointer-events-none">
+            <!-- 나가기 -->
+            <button onclick="exitTutorial()" class="absolute top-4 right-6 z-20 pointer-events-auto flex items-center gap-1 px-3 py-2 bg-white/80 hover:bg-red-50 border border-slate-200 hover:border-red-300 text-slate-500 hover:text-red-500 rounded-xl text-sm font-bold transition-all btn-ui">
+                ✕ 나가기
+            </button>
+            <!-- 상단 진행 표시 -->
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                <div class="bg-white/90 px-6 py-2 rounded-full border border-sky-200 shadow text-sky-800 font-bold text-sm flex gap-2 items-center">
+                    <span>튜토리얼</span>
+                    <span id="tuto-progress" class="text-sky-500 font-black">1 / 6</span>
+                </div>
+            </div>
+            <!-- 토스트 메시지 -->
+            <div id="tuto-toast" class="absolute bottom-44 left-1/2 -translate-x-1/2 z-30 pointer-events-none
+                 bg-slate-900/95 text-white px-6 py-3 rounded-2xl text-base font-bold shadow-2xl
+                 border border-sky-400/40 max-w-md text-center leading-snug transition-all">
+            </div>
+            <!-- 정보 패널 -->
+            <div class="absolute top-6 left-6 flex gap-4 text-sky-900 pointer-events-none">
+                <div class="bg-white/90 p-3 rounded-2xl border border-sky-100 shadow-sm">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">남은 횟수</p>
+                    <p id="tuto-hits" class="text-2xl font-black text-emerald-600">4</p>
+                </div>
+                <div class="bg-white/90 p-3 rounded-2xl border border-sky-100 shadow-sm">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-60">문제</p>
+                    <p id="tuto-qnum" class="text-2xl font-black text-sky-700">1</p>
+                </div>
+            </div>
+            <!-- 하단 조작부 -->
+            <div class="absolute bottom-6 w-full px-10 flex justify-between items-end pointer-events-auto">
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col gap-2">
+                        <button onclick="tutoAdjust(15)" class="p-3 bg-white border-2 border-sky-500 rounded-xl text-sky-600 hover:bg-sky-50 btn-ui">▲</button>
+                        <button onclick="tutoAdjust(-15)" class="p-3 bg-white border-2 border-sky-500 rounded-xl text-sky-600 hover:bg-sky-50 btn-ui">▼</button>
+                    </div>
+                    <div class="bg-sky-600 p-6 rounded-3xl text-white text-center min-w-[120px] shadow-lg">
+                        <p class="text-[10px] font-bold uppercase mb-1">Fire Angle</p>
+                        <p id="tuto-angle" class="text-4xl font-black">15°</p>
+                    </div>
+                </div>
+                <button onclick="tutoFire()" class="group relative px-16 py-8 bg-emerald-500 hover:bg-emerald-400 rounded-3xl text-white text-3xl font-black shadow-2xl transition-all btn-ui">
+                    <span class="relative z-10">요격 (FIRE)</span>
+                </button>
+            </div>
+        </div>
+
         <canvas id="gameCanvas"></canvas>
     </div>
 
@@ -242,10 +298,200 @@
 
         function exitGame() {
             if (confirm('게임을 중단하고 인트로 화면으로 돌아가시겠습니까?')) {
-                gameState = 'INTRO'; // gameLoop 중단
+                gameState = 'INTRO';
                 fragments = [];
                 returnToIntro();
             }
+        }
+
+        // ══════════════════════════════════════════════════
+        // 튜토리얼 시스템
+        // ══════════════════════════════════════════════════
+        const TUTO_STEPS = [
+            { type: 'ARC',   angle: 60, hitsNeeded: 4, fireAngle: 15,
+              toast: '🔵 호(Arc) 파편!\n각도를 15°로 맞추고 4번 요격하세요.\n타격마다 +10점, 제거 시 추가 +50점!' },
+            { type: 'ARC',   angle: 45, hitsNeeded: 3, fireAngle: 15,
+              toast: '🔵 호(Arc) 45° 파편!\n15°씩 3번 요격하면 제거됩니다.' },
+            { type: 'ARC',   angle: 30, hitsNeeded: 2, fireAngle: 15,
+              toast: '🔵 호(Arc) 30° 파편!\n15°씩 2번이면 충분해요.' },
+            { type: 'CHORD', angle: 30, hitsNeeded: 1, fireAngle: 30,
+              toast: '🔴 현(Chord) 파편!\n각도를 정확히 30°에 맞추고 요격하세요.\n중심각이 같으면 현의 길이도 같습니다!' },
+            { type: 'CHORD', angle: 45, hitsNeeded: 1, fireAngle: 45,
+              toast: '🔴 현(Chord) 45° 파편!\n정확히 45°로 맞춰야 합니다. +200점 PERFECT!' },
+            { type: 'CHORD', angle: 60, hitsNeeded: 1, fireAngle: 60,
+              toast: '🔴 현(Chord) 60° 파편!\n60°로 맞추고 요격하세요. 마지막 문제!' },
+        ];
+
+        let tutoStep = 0;
+        let tutoAngle = 15;
+        let tutoHitsLeft = 0;
+        let tutoFrag = null;
+        let tutoAnimId = null;
+        let tutoLastTime = 0;
+
+        function startTutorial() {
+            tutoStep = 0; tutoAngle = 15;
+            showScreen('tutorial');
+            gameState = 'TUTORIAL';
+            loadTutoStep();
+            tutoLastTime = performance.now();
+            if (tutoAnimId) cancelAnimationFrame(tutoAnimId);
+            tutoAnimId = requestAnimationFrame(tutoLoop);
+        }
+
+        function exitTutorial() {
+            if (confirm('튜토리얼을 중단하고 인트로로 돌아가시겠습니까?')) {
+                gameState = 'INTRO';
+                if (tutoAnimId) cancelAnimationFrame(tutoAnimId);
+                returnToIntro();
+            }
+        }
+
+        function loadTutoStep() {
+            const step = TUTO_STEPS[tutoStep];
+            tutoHitsLeft = step.hitsNeeded;
+            tutoAngle = 15;
+            document.getElementById('tuto-angle').innerText = tutoAngle + '°';
+            document.getElementById('tuto-progress').innerText = (tutoStep+1) + ' / 6';
+            document.getElementById('tuto-qnum').innerText = tutoStep + 1;
+            document.getElementById('tuto-hits').innerText = tutoHitsLeft;
+            setTutoToast(step.toast);
+            tutoFrag = { type: step.type, angle: step.angle, currentVal: step.angle,
+                         x: 500, y: 100, speed: 0.22, radius: 55 };
+        }
+
+        function setTutoToast(msg) {
+            const el = document.getElementById('tuto-toast');
+            el.innerHTML = msg.replace(/\n/g, '<br>');
+        }
+
+        function tutoAdjust(val) {
+            if (gameState !== 'TUTORIAL') return;
+            tutoAngle = Math.max(15, Math.min(90, tutoAngle + val));
+            document.getElementById('tuto-angle').innerText = tutoAngle + '°';
+        }
+
+        function tutoFire() {
+            if (gameState !== 'TUTORIAL' || !tutoFrag) return;
+            const step = TUTO_STEPS[tutoStep];
+            if (step.type === 'ARC') {
+                if (tutoAngle !== 15) {
+                    setTutoToast('⚠️ 호 파편은 각도를 15°로 맞춰야 합니다!\n▼ 버튼으로 조절하세요.');
+                    return;
+                }
+                tutoFrag.currentVal -= 15;
+                tutoHitsLeft--;
+                document.getElementById('tuto-hits').innerText = Math.max(0, tutoHitsLeft);
+                createFloatingScore(tutoFrag.x, tutoFrag.y, '-15°  +10점', '#0ea5e9');
+                if (tutoFrag.currentVal <= 0) {
+                    spawnFlower(tutoFrag.x, tutoFrag.y, '#0ea5e9');
+                    createFloatingScore(tutoFrag.x, tutoFrag.y - 30, 'SUCCESS  +50점', '#0369a1');
+                    tutoFrag = null;
+                    setTimeout(advanceTutoStep, 800);
+                } else {
+                    setTutoToast('🔵 좋아요! 남은 횟수: ' + tutoHitsLeft + '번\n계속 15°로 요격하세요.');
+                }
+            } else {
+                if (Math.abs(tutoAngle - step.fireAngle) < 2) {
+                    spawnFlower(tutoFrag.x, tutoFrag.y, '#ef4444');
+                    createFloatingScore(tutoFrag.x, tutoFrag.y, 'PERFECT  +200점', '#ef4444');
+                    tutoFrag = null;
+                    setTimeout(advanceTutoStep, 800);
+                } else {
+                    setTutoToast('⚠️ 각도가 다릅니다! 정확히 ' + step.fireAngle + '°로 맞추세요.');
+                    createFloatingScore(tutoFrag.x, tutoFrag.y, 'MISS!', '#94a3b8');
+                }
+            }
+        }
+
+        function advanceTutoStep() {
+            tutoStep++;
+            if (tutoStep >= TUTO_STEPS.length) {
+                if (tutoAnimId) cancelAnimationFrame(tutoAnimId);
+                tutoFrag = null;
+                flowers = [];
+                explosions = [];
+                setTutoToast('🎉 튜토리얼 완료! 바로 본 게임을 시작합니다!');
+                setTimeout(startMainGame, 1400);
+            } else {
+                loadTutoStep();
+            }
+        }
+
+        function tutoLoop(time) {
+            if (gameState !== 'TUTORIAL') return;
+            tutoLastTime = time;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#f0f9ff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawTurret();
+            if (tutoFrag) {
+                tutoFrag.y += tutoFrag.speed;
+                if (tutoFrag.y > canvas.height - 100) { tutoFrag.y = 100; tutoFrag.x = 500; }
+                drawTutoFrag(tutoFrag);
+            }
+            drawFlowers();
+            drawExplosions();
+            tutoAnimId = requestAnimationFrame(tutoLoop);
+        }
+
+        function drawTurret() {
+            const tx = 500, ty = canvas.height - 55;
+            const r = 80;
+            const halfRad = (tutoAngle * Math.PI) / 360;
+            const startA = -Math.PI/2 - halfRad, endA = -Math.PI/2 + halfRad;
+            // 받침 원
+            ctx.beginPath(); ctx.arc(tx, ty, 20, 0, Math.PI*2);
+            ctx.fillStyle = '#0c4a6e'; ctx.fill();
+            // 부채꼴
+            ctx.beginPath(); ctx.moveTo(tx, ty);
+            ctx.arc(tx, ty, r, startA, endA); ctx.closePath();
+            ctx.fillStyle = 'rgba(16,185,129,0.2)'; ctx.fill();
+            ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3; ctx.stroke();
+            // 이등변삼각형
+            const lx = tx+Math.cos(startA)*r, ly = ty+Math.sin(startA)*r;
+            const rx2= tx+Math.cos(endA)*r,   ry2= ty+Math.sin(endA)*r;
+            ctx.beginPath(); ctx.moveTo(tx,ty);
+            ctx.lineTo(lx,ly); ctx.lineTo(rx2,ry2); ctx.closePath();
+            ctx.strokeStyle='#10b981'; ctx.lineWidth=2; ctx.stroke();
+            // 중심 점선
+            ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx, ty-r-8);
+            ctx.strokeStyle='rgba(16,185,129,0.45)'; ctx.lineWidth=1.5;
+            ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+            // 레이블
+            ctx.fillStyle='#065f46'; ctx.font='bold 15px Arial'; ctx.textAlign='center';
+            ctx.fillText(tutoAngle+'°', tx, ty+42);
+        }
+
+        function drawTutoFrag(f) {
+            ctx.save(); ctx.translate(f.x, f.y);
+            const color     = f.type==='ARC' ? '#0ea5e9' : '#ef4444';
+            const fillColor = f.type==='ARC' ? 'rgba(14,165,233,0.25)' : 'rgba(239,68,68,0.15)';
+            const drawAngle = f.type==='ARC' ? f.currentVal : f.angle;
+            const sa = -Math.PI/2 - (drawAngle*Math.PI/360);
+            const ea = -Math.PI/2 + (drawAngle*Math.PI/360);
+            ctx.strokeStyle=color; ctx.lineWidth=3;
+            if (f.type==='ARC') {
+                ctx.beginPath(); ctx.moveTo(0,0);
+                ctx.lineTo(Math.cos(sa)*f.radius, Math.sin(sa)*f.radius);
+                ctx.arc(0,0,f.radius,sa,ea); ctx.lineTo(0,0);
+                ctx.fillStyle=fillColor; ctx.fill(); ctx.stroke();
+            } else {
+                const x1=Math.cos(sa)*f.radius, y1=Math.sin(sa)*f.radius;
+                const x2=Math.cos(ea)*f.radius, y2=Math.sin(ea)*f.radius;
+                ctx.beginPath(); ctx.moveTo(0,0);
+                ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(0,0);
+                ctx.fillStyle=fillColor; ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+                ctx.lineWidth=6; ctx.stroke();
+            }
+            // 각도 숫자 — 위쪽(하늘 방향)
+            ctx.fillStyle=color; ctx.font='900 20px Arial'; ctx.textAlign='center';
+            ctx.fillText(f.currentVal+'°', 0, -(f.radius+14));
+            // 라벨
+            ctx.font='bold 13px Arial';
+            ctx.fillText(f.type==='ARC' ? '호(Arc)' : '현(Chord)', 0, f.radius+28);
+            ctx.restore();
         }
 
         const createFloatingScore = (x, y, text, color) => {
@@ -311,8 +557,8 @@
             }
         }
 
-        function startGame() {
-            score = 0; floodLevel = 0; remains = 30; round = 1; fragments = []; spawnTimer = 0;
+        function startMainGame() {
+            score = 0; floodLevel = 0; remains = 24; round = 1; fragments = []; spawnTimer = 0;
             updateFlood();
             document.getElementById('ui-score').innerText = score;
             document.getElementById('ui-remains').innerText = remains;
@@ -331,6 +577,8 @@
             }, 1000);
         }
 
+        function startGame() { startMainGame(); }
+
         function adjustAngle(val) {
             currentAngle = Math.max(15, Math.min(90, currentAngle + val));
             document.getElementById('ui-current-angle').innerText = `${currentAngle}°`;
@@ -338,6 +586,7 @@
 
         function fire() {
             if (gameState !== 'GAME') return;
+            // 가장 아래 파편을 타겟으로
             let targetIdx = -1; let maxY = -1;
             for (let i = 0; i < fragments.length; i++) {
                 if (fragments[i].y > maxY) { maxY = fragments[i].y; targetIdx = i; }
@@ -345,17 +594,32 @@
             if (targetIdx === -1) return;
             const frag = fragments[targetIdx];
             const hitX = frag.x; const hitY = frag.y;
-            
+
             if (frag.type === TYPE_ARC) {
-                frag.currentVal -= currentAngle;
+                // 호: 15의 배수, 남은 각도 이하만 가능
+                if (currentAngle % 15 !== 0) {
+                    createFloatingScore(hitX, hitY, "15의 배수로 맞추세요!", "#f59e0b");
+                    return;
+                }
+                if (currentAngle > frag.currentVal) {
+                    createFloatingScore(hitX, hitY, `${frag.currentVal}° 이하로 맞추세요!`, "#f59e0b");
+                    return;
+                }
+                const hit = currentAngle;
+                frag.currentVal -= hit;
                 score += 10;
-                createFloatingScore(hitX, hitY, `-${currentAngle}°`, "#0ea5e9");
+                createFloatingScore(hitX, hitY, `-${hit}°  +10`, "#0ea5e9");
                 if (frag.currentVal <= 0) {
+                    spawnFlower(hitX, hitY, '#0ea5e9');
                     fragments.splice(targetIdx, 1); remains--;
-                    score += 50; createFloatingScore(hitX, hitY, "SUCCESS +50", "#0369a1");
+                    score += 50; createFloatingScore(hitX, hitY - 30, "SUCCESS +50", "#0369a1");
+                } else {
+                    spawnExplosion(hitX, hitY, '#7dd3fc');
                 }
             } else {
+                // 현: 표시된 각도와 정확히 일치해야
                 if (Math.abs(frag.targetAngle - currentAngle) < 2) {
+                    spawnFlower(hitX, hitY, '#ef4444');
                     fragments.splice(targetIdx, 1); remains--;
                     score += 200; createFloatingScore(hitX, hitY, "PERFECT +200", "#ef4444");
                 } else {
@@ -368,9 +632,9 @@
         }
 
         function checkRoundProgress() {
-            const cleared = 30 - remains;
-            if (cleared >= 10 && round === 1) round = 2;
-            if (cleared >= 20 && round === 2) round = 3;
+            const cleared = 24 - remains;
+            if (cleared >= 8 && round === 1) round = 2;
+            if (cleared >= 16 && round === 2) round = 3;
             if (remains <= 0) endLevel(true);
         }
 
@@ -417,8 +681,8 @@
             lastTime = time;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const spawnedSoFar = 30 - remains + fragments.length;
-            if (spawnedSoFar < 30) {
+            const spawnedSoFar = 24 - remains + fragments.length;
+            if (spawnedSoFar < 24) {
                 spawnTimer += dt;
                 if (spawnTimer > ROUNDS[Math.min(round-1, 2)].interval) {
                     fragments.push(new Fragment());
@@ -426,14 +690,185 @@
                 }
             }
             
+            // 요격대 (매 프레임)
+            drawGameTurret();
+
             for (let i = fragments.length - 1; i >= 0; i--) {
                 const frag = fragments[i];
                 if (frag.update()) { fragments.splice(i, 1); }
                 else { frag.draw(); }
             }
+
+            // 꽃 파티클
+            drawFlowers();
+            // 폭발 파티클
+            drawExplosions();
+
             requestAnimationFrame(gameLoop);
         }
 
+
+        // ── 본게임 요격대 (화면 하단 중앙) ──────────────────
+        const TURRET_X = 500;
+        const TURRET_Y = 560;   // 캔버스 하단 가까이
+        const TURRET_R = 90;    // 부채꼴 반지름
+
+        function drawGameTurret() {
+            const tx = TURRET_X, ty = TURRET_Y, r = TURRET_R;
+            const halfRad = (currentAngle * Math.PI) / 360;
+            const startA = -Math.PI / 2 - halfRad;
+            const endA   = -Math.PI / 2 + halfRad;
+
+            // ── 부채꼴 (반투명 채움) ──
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.arc(tx, ty, r, startA, endA);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(14, 165, 233, 0.18)';
+            ctx.fill();
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // ── 이등변삼각형 (두 빗변 + 밑변) ──
+            const lx = tx + Math.cos(startA) * r;
+            const ly = ty + Math.sin(startA) * r;
+            const rx2 = tx + Math.cos(endA) * r;
+            const ry2 = ty + Math.sin(endA) * r;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(lx, ly);
+            ctx.lineTo(rx2, ry2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // ── 중심 조준선 (점선) ──
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx, ty - r - 12);
+            ctx.strokeStyle = 'rgba(56,189,248,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // ── 받침 원 ──
+            ctx.beginPath();
+            ctx.arc(tx, ty, 14, 0, Math.PI * 2);
+            ctx.fillStyle = '#0c4a6e';
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // ── 각도 표시 ──
+            ctx.fillStyle = '#0369a1';
+            ctx.font = 'bold 13px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentAngle + '°', tx, ty + 30);
+        }
+
+        // ── 꽃 파티클 시스템 ───────────────────────────────
+        let flowers = [];
+
+        function spawnFlower(x, y, color) {
+            const petals = [];
+            const petalColors = color === '#ef4444'
+                ? ['#ef4444','#f97316','#fb923c','#fbbf24','#f472b6']
+                : ['#38bdf8','#818cf8','#a78bfa','#34d399','#60a5fa'];
+            const count = 14;
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count;
+                const speed = 1.5 + Math.random() * 2.5;
+                petals.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1.5,
+                    size: 6 + Math.random() * 5,
+                    color: petalColors[i % petalColors.length],
+                    angle: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.18,
+                    life: 1.0,
+                });
+            }
+            flowers.push({ petals });
+        }
+
+        function drawFlowers() {
+            flowers = flowers.filter(f => f.petals.some(p => p.life > 0));
+            for (const fl of flowers) {
+                for (const p of fl.petals) {
+                    if (p.life <= 0) continue;
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.angle);
+                    // 꽃잎 모양: 타원 2개 교차
+                    ctx.fillStyle = p.color;
+                    for (let k = 0; k < 5; k++) {
+                        ctx.save();
+                        ctx.rotate((Math.PI * 2 * k) / 5);
+                        ctx.beginPath();
+                        ctx.ellipse(0, -p.size * 0.7, p.size * 0.38, p.size * 0.7, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                    // 꽃 중심
+                    ctx.fillStyle = '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.size * 0.32, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.12;   // 중력
+                    p.vx *= 0.98;
+                    p.angle += p.spin;
+                    p.life -= 0.022;
+                }
+            }
+        }
+
+                // ── 폭발 파티클 시스템 ─────────────────────────────
+        let explosions = [];   // [{x,y,color,particles:[{x,y,vx,vy,life}]}]
+
+        function spawnExplosion(x, y, color) {
+            const particles = [];
+            for (let i = 0; i < 12; i++) {
+                const angle = (Math.PI * 2 * i) / 12 + Math.random() * 0.3;
+                const speed = 2 + Math.random() * 3;
+                particles.push({ x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0 });
+            }
+            explosions.push({ color, particles });
+        }
+
+        function drawExplosions() {
+            explosions = explosions.filter(exp => exp.particles.some(p => p.life > 0));
+            for (const exp of explosions) {
+                for (const p of exp.particles) {
+                    if (p.life <= 0) continue;
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = exp.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4 * p.life, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    p.x  += p.vx;
+                    p.y  += p.vy;
+                    p.vy += 0.15;   // 중력
+                    p.life -= 0.045;
+                }
+            }
+        }
 
         function showVideo() {
             showScreen('video');
